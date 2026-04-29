@@ -9,12 +9,10 @@ module.exports = {
 
   reporters: [
     'default',
-    [
-      'allure-jest',
-      {
-        resultsDir: 'allure-results',
-        testMode: true,
-      },
-    ],
   ],
+
+  testEnvironment: 'allure-jest/node',
+  testEnvironmentOptions: {
+    resultsDir: 'allure-results',
+  },
 };
