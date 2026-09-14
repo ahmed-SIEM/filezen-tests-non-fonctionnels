@@ -49,10 +49,14 @@ export default function () {
   sleep(1);
 
   // 2. Authentification — mauvais credentials → doit répondre 400 ou 401
+  // responseCallback marque ces statuts comme "attendus" pour ne pas polluer http_req_failed
   const loginRes = http.post(
     `${BASE_URL}/api/auth/login`,
     JSON.stringify({ email: 'smoke@test.com', password: 'wrongpassword' }),
-    { headers: { 'Content-Type': 'application/json' } }
+    {
+      headers: { 'Content-Type': 'application/json' },
+      responseCallback: http.expectedStatuses(400, 401, 404),
+    }
   );
   const loginOK = check(loginRes, {
     '[SMOKE] POST /api/auth/login répond': (r) => r.status === 400 || r.status === 401 || r.status === 404,
@@ -64,7 +68,9 @@ export default function () {
   sleep(1);
 
   // 3. Tentative d'accès protégé sans token → doit répondre 401
-  const protectedRes = http.get(`${BASE_URL}/api/etablissements/me/etablissement`);
+  const protectedRes = http.get(`${BASE_URL}/api/etablissements/me/etablissement`, {
+    responseCallback: http.expectedStatuses(401, 403),
+  });
   const protectedOK = check(protectedRes, {
     '[SMOKE] Route protégée → 401 sans token': (r) => r.status === 401 || r.status === 403,
     '[SMOKE] Temps réponse < 1000ms': (r) => r.timings.duration < 1000,
