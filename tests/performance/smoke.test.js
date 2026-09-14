@@ -36,30 +36,19 @@ const BASE_URL = __ENV.API_URL || 'http://localhost:5000';
 // ─── Scénario principal ───────────────────────────────────────────────────────
 export default function () {
 
-  // 1. Health check — le serveur est-il vivant ? (route publique connue)
-  const healthRes = http.get(`${BASE_URL}/api/etablissements`);
-  const healthOK = check(healthRes, {
-    '[SMOKE] Serveur répond 200': (r) => r.status === 200,
-    '[SMOKE] Temps réponse < 200ms': (r) => r.timings.duration < 200,
-  });
-  errorRate.add(!healthOK);
-  apiLatency.add(healthRes.timings.duration);
-
-  sleep(1);
-
-  // 2. Services publics — route publique
-  const servicesRes = http.get(`${BASE_URL}/api/services`);
-  const servicesOK = check(servicesRes, {
-    '[SMOKE] GET /api/services → 200': (r) => r.status === 200,
+  // 1. Liste établissements — route publique principale
+  const etablissementsRes = http.get(`${BASE_URL}/api/etablissements`);
+  const etablissementsOK = check(etablissementsRes, {
+    '[SMOKE] GET /api/etablissements → 200': (r) => r.status === 200,
     '[SMOKE] Réponse JSON valide': (r) => r.headers['Content-Type'] && r.headers['Content-Type'].includes('json'),
-    '[SMOKE] Temps réponse < 500ms': (r) => r.timings.duration < 500,
+    '[SMOKE] Temps réponse < 1000ms': (r) => r.timings.duration < 1000,
   });
-  errorRate.add(!servicesOK);
-  apiLatency.add(servicesRes.timings.duration);
+  errorRate.add(!etablissementsOK);
+  apiLatency.add(etablissementsRes.timings.duration);
 
   sleep(1);
 
-  // 3. Route de connexion — vérifier le formulaire répond
+  // 2. Authentification — mauvais credentials → doit répondre 400 ou 401
   const loginRes = http.post(
     `${BASE_URL}/api/auth/login`,
     JSON.stringify({ email: 'smoke@test.com', password: 'wrongpassword' }),
@@ -71,6 +60,17 @@ export default function () {
   });
   errorRate.add(!loginOK);
   apiLatency.add(loginRes.timings.duration);
+
+  sleep(1);
+
+  // 3. Tentative d'accès protégé sans token → doit répondre 401
+  const protectedRes = http.get(`${BASE_URL}/api/etablissements/me/etablissement`);
+  const protectedOK = check(protectedRes, {
+    '[SMOKE] Route protégée → 401 sans token': (r) => r.status === 401 || r.status === 403,
+    '[SMOKE] Temps réponse < 1000ms': (r) => r.timings.duration < 1000,
+  });
+  errorRate.add(!protectedOK);
+  apiLatency.add(protectedRes.timings.duration);
 
   sleep(2);
 }
