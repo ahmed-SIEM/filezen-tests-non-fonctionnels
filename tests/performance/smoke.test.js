@@ -36,8 +36,8 @@ const BASE_URL = __ENV.API_URL || 'http://localhost:5000';
 // ─── Scénario principal ───────────────────────────────────────────────────────
 export default function () {
 
-  // 1. Health check — le serveur est-il vivant ?
-  const healthRes = http.get(`${BASE_URL}/`);
+  // 1. Health check — le serveur est-il vivant ? (route publique connue)
+  const healthRes = http.get(`${BASE_URL}/api/etablissements`);
   const healthOK = check(healthRes, {
     '[SMOKE] Serveur répond 200': (r) => r.status === 200,
     '[SMOKE] Temps réponse < 200ms': (r) => r.timings.duration < 200,
@@ -47,15 +47,15 @@ export default function () {
 
   sleep(1);
 
-  // 2. Liste établissements — route publique
-  const etablissementsRes = http.get(`${BASE_URL}/api/etablissements`);
-  const etablissementsOK = check(etablissementsRes, {
-    '[SMOKE] GET /api/etablissements → 200': (r) => r.status === 200,
+  // 2. Services publics — route publique
+  const servicesRes = http.get(`${BASE_URL}/api/services`);
+  const servicesOK = check(servicesRes, {
+    '[SMOKE] GET /api/services → 200': (r) => r.status === 200,
     '[SMOKE] Réponse JSON valide': (r) => r.headers['Content-Type'] && r.headers['Content-Type'].includes('json'),
     '[SMOKE] Temps réponse < 500ms': (r) => r.timings.duration < 500,
   });
-  errorRate.add(!etablissementsOK);
-  apiLatency.add(etablissementsRes.timings.duration);
+  errorRate.add(!servicesOK);
+  apiLatency.add(servicesRes.timings.duration);
 
   sleep(1);
 
